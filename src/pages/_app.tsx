@@ -12,7 +12,9 @@ export default function App({ Component, pageProps }: AppProps) {
                 revalidateOnReconnect: false,
             }}
         >
-            <Component {...pageProps} />
+            <SWRConfig value={{ fallback: pageProps.fallback }}>
+                <Component {...pageProps} />
+            </SWRConfig>
         </SWRConfig>
     );
 }

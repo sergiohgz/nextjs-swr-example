@@ -5,7 +5,7 @@ import { GetServerSideProps } from 'next';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import React from 'react';
-import useSWR, { SWRConfig, unstable_serialize } from 'swr';
+import useSWR, { unstable_serialize } from 'swr';
 
 const usersCacheKeyBuilder = (page: number) => ['users', page];
 const INITIAL_PAGE = 1;
@@ -53,12 +53,8 @@ const Users = () => {
 
 type UsersPageProps = Page<Users>;
 
-export default function UsersPage({ fallback }: UsersPageProps) {
-    return (
-        <SWRConfig value={{ fallback }}>
-            <Users />
-        </SWRConfig>
-    );
+export default function UsersPage() {
+    return <Users />;
 }
 
 export const getServerSideProps: GetServerSideProps<
