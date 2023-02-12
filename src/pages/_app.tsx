@@ -1,18 +1,18 @@
 import '@/styles/globals.css';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { AppProps } from 'next/app';
-import { SWRConfig } from 'swr';
+import { useState } from 'react';
 
 export default function App({ Component, pageProps }: AppProps) {
+    const [queryClient] = useState(
+        () =>
+            new QueryClient({
+                defaultOptions: { queries: { refetchOnMount: false } },
+            })
+    );
     return (
-        <SWRConfig
-            value={{
-                revalidateIfStale: true,
-                revalidateOnFocus: false,
-                revalidateOnMount: false,
-                revalidateOnReconnect: false,
-            }}
-        >
+        <QueryClientProvider client={queryClient}>
             <Component {...pageProps} />
-        </SWRConfig>
+        </QueryClientProvider>
     );
 }

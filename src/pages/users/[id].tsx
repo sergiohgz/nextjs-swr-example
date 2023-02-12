@@ -1,11 +1,16 @@
-import { Page } from '@/models/page';
-import { User, UserId } from '@/models/users';
+import { PageSSR } from '@/models/page';
+import { UserId } from '@/models/users';
 import { getUser } from '@/services/api/backend';
+import {
+    dehydrate,
+    Hydrate,
+    QueryClient,
+    useQuery,
+} from '@tanstack/react-query';
 import { GetServerSideProps } from 'next';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import React from 'react';
-import useSWR, { SWRConfig, unstable_serialize } from 'swr';
 
 const userCacheKeyBuilder = (id: UserId) => ['api', 'user', id];
 
@@ -14,7 +19,7 @@ interface UserProps {
 }
 
 const User = ({ id }: UserProps) => {
-    const { data: response } = useSWR(userCacheKeyBuilder(id), () =>
+    const { data: response } = useQuery(userCacheKeyBuilder(id), () =>
         getUser(id)
     );
 
@@ -39,31 +44,34 @@ const User = ({ id }: UserProps) => {
     );
 };
 
-type UserPageProps = Page<User>;
-
-export default function UserPage({ fallback }: UserPageProps) {
+export default function UserPage({ dehydratedState }: PageSSR) {
     const {
         query: { id },
     } = useRouter();
+    if (!id) {
+        return null;
+    }
+
     return (
-        <SWRConfig value={{ fallback }}>{id && <User id={+id} />}</SWRConfig>
+        <Hydrate state={dehydratedState}>
+            <User id={+id} />
+        </Hydrate>
     );
 }
 
 export const getServerSideProps: GetServerSideProps<
-    UserPageProps,
+    PageSSR,
     { id: string }
 > = async (ctx) => {
     if (!ctx.params) {
         return { redirect: { destination: '/500', permanent: false } };
     }
     const id: UserId = +ctx.params.id;
-    const data = await getUser(id);
+    const queryClient = new QueryClient();
+    await queryClient.prefetchQuery(userCacheKeyBuilder(id), () => getUser(id));
     return {
         props: {
-            fallback: {
-                [unstable_serialize(userCacheKeyBuilder(id))]: data,
-            },
+            dehydratedState: dehydrate(queryClient),
         },
     };
 };

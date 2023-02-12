@@ -1,5 +1,5 @@
-export interface Page<T> {
-    fallback: {
-        [cacheKey: string]: T;
-    };
+import { DehydratedState } from '@tanstack/react-query';
+
+export interface PageSSR {
+    dehydratedState: DehydratedState;
 }

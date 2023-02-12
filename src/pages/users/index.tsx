@@ -1,11 +1,15 @@
-import { Page } from '@/models/page';
-import { Users } from '@/models/users';
+import { PageSSR } from '@/models/page';
 import { getUsers } from '@/services/api/backend';
+import {
+    dehydrate,
+    Hydrate,
+    QueryClient,
+    useQuery,
+} from '@tanstack/react-query';
 import { GetServerSideProps } from 'next';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import React from 'react';
-import useSWR, { SWRConfig, unstable_serialize } from 'swr';
 
 const usersCacheKeyBuilder = (page: number) => ['users', page];
 const INITIAL_PAGE = 1;
@@ -15,7 +19,7 @@ const Users = () => {
 
     const page = Number(query?.page || INITIAL_PAGE);
 
-    const { data: response } = useSWR(usersCacheKeyBuilder(page), () =>
+    const { data: response } = useQuery(usersCacheKeyBuilder(page), () =>
         getUsers(page)
     );
 
@@ -51,27 +55,28 @@ const Users = () => {
     );
 };
 
-type UsersPageProps = Page<Users>;
+type UsersPageProps = PageSSR;
 
-export default function UsersPage({ fallback }: UsersPageProps) {
+export default function UsersPage({ dehydratedState }: UsersPageProps) {
     return (
-        <SWRConfig value={{ fallback }}>
+        <Hydrate state={dehydratedState}>
             <Users />
-        </SWRConfig>
+        </Hydrate>
     );
 }
 
 export const getServerSideProps: GetServerSideProps<
-    UsersPageProps,
+    PageSSR,
     { page: string }
 > = async (ctx) => {
     const page = Number(ctx.query.page || INITIAL_PAGE);
-    const data = await getUsers(page);
+    const queryClient = new QueryClient();
+    await queryClient.prefetchQuery(usersCacheKeyBuilder(page), () =>
+        getUsers(page)
+    );
     return {
         props: {
-            fallback: {
-                [unstable_serialize(usersCacheKeyBuilder(page))]: data,
-            },
+            dehydratedState: dehydrate(queryClient),
         },
     };
 };
